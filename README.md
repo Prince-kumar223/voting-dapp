@@ -11,6 +11,11 @@ Terminal-style decentralized voting app on Stellar **Soroban** (Testnet), with *
 - `frontend/`: React + Vite UI
 - `scripts/`: deploy/init scripts (local + CI friendly)
 
+## Architecture (high level)
+- **Voting contract**: stores proposals + one-vote-per-wallet guard; emits `vote_cast`; calls token `mint` atomically.
+- **Token contract**: SEP-41-style primitives (`balance`, `transfer`, allowances) plus admin `mint`; emits `tokens_rewarded`.
+- **Frontend**: Freighter wallet connect + Soroban RPC integration; event feed polls `getEvents` with cursor pagination + dedupe.
+
 ## Quickstart
 
 ### Prereqs
@@ -46,3 +51,8 @@ After first deploy, we will update this README with:
 - Mobile screenshots
 
 See [scripts/deploy.testnet.md](scripts/deploy.testnet.md).
+
+## Contract addresses (fill after deploy)
+- **Voting contract**: `<VOTING_CONTRACT_ID>`
+- **Token contract**: `<TOKEN_CONTRACT_ID>`
+- **Deploy tx hash**: `<TX_HASH>`
