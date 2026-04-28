@@ -1,10 +1,3 @@
-import {
-  Account,
-  Operation,
-  TransactionBuilder,
-  nativeToScVal,
-  rpc,
-} from '@stellar/stellar-sdk'
 import { sorobanServer } from './rpc'
 import { STELLAR } from './network'
 import { freighterSignXdr } from '../wallet/freighter'
@@ -25,29 +18,33 @@ export async function invokeContract({
   args: unknown[]
 }): Promise<InvokeResult> {
   try {
-    const server = sorobanServer()
+    const sdk = await import('@stellar/stellar-sdk')
+    const server = (await sorobanServer()) as InstanceType<typeof sdk.rpc.Server>
     const account = await server.getAccount(publicKey)
 
-    const op = Operation.invokeContractFunction({
+    const op = sdk.Operation.invokeContractFunction({
       contract: contractId,
       function: method,
-      args: args.map((a) => nativeToScVal(a as never)),
+      args: args.map((a) => sdk.nativeToScVal(a as never)),
     })
 
-    const tx = new TransactionBuilder(new Account(account.accountId(), account.sequenceNumber()), {
+    const tx = new sdk.TransactionBuilder(
+      new sdk.Account(account.accountId(), account.sequenceNumber()),
+      {
       fee: '100000',
       networkPassphrase: STELLAR.networkPassphrase,
-    })
+      },
+    )
       .addOperation(op)
       .setTimeout(60)
       .build()
 
     const sim = await server.simulateTransaction(tx)
-    if (rpc.Api.isSimulationError(sim)) {
+    if (sdk.rpc.Api.isSimulationError(sim)) {
       return { ok: false, stage: 'simulate', message: JSON.stringify(sim.error) }
     }
 
-    const assembled = rpc.assembleTransaction(tx, sim).build()
+    const assembled = sdk.rpc.assembleTransaction(tx, sim).build()
 
     let signedXdr: string
     try {
@@ -60,7 +57,7 @@ export async function invokeContract({
       return { ok: false, stage: 'sign', message: msg }
     }
 
-    const signed = TransactionBuilder.fromXDR(signedXdr, STELLAR.networkPassphrase)
+    const signed = sdk.TransactionBuilder.fromXDR(signedXdr, STELLAR.networkPassphrase)
     const send = await server.sendTransaction(signed)
     if (send.status !== 'PENDING') {
       return { ok: false, stage: 'send', message: JSON.stringify(send) }

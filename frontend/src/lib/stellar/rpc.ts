@@ -1,11 +1,11 @@
-import { rpc } from '@stellar/stellar-sdk'
 import { STELLAR } from './network'
 
-let _server: rpc.Server | null = null
+let _server: unknown | null = null
 
-export function sorobanServer() {
+export async function sorobanServer() {
   if (_server) return _server
-  _server = new rpc.Server(STELLAR.sorobanRpcUrl, { allowHttp: false })
+  const sdk = await import('@stellar/stellar-sdk')
+  _server = new sdk.rpc.Server(STELLAR.sorobanRpcUrl, { allowHttp: false })
   return _server
 }
 

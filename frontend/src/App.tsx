@@ -3,6 +3,7 @@ import { TerminalPanel } from './components/TerminalPanel'
 import { TypingHeading } from './components/TypingHeading'
 import { EventFeed } from './features/events/EventFeed'
 import type { ChainEvent } from './features/events/types'
+import { useEventFeed } from './features/events/useEventFeed'
 import { TokenBalance } from './features/token/TokenBalance'
 import { ProposalList } from './features/voting/ProposalList'
 import type { Proposal } from './features/voting/types'
@@ -39,6 +40,24 @@ function App() {
       ].slice(0, 50))
     },
     [connected],
+  )
+
+  const votingContractId = import.meta.env.VITE_VOTING_CONTRACT_ID as string | undefined
+  const tokenContractId = import.meta.env.VITE_TOKEN_CONTRACT_ID as string | undefined
+  const contractIds = useMemo(
+    () => [votingContractId, tokenContractId].filter(Boolean) as string[],
+    [tokenContractId, votingContractId],
+  )
+
+  const { events: chainEvents } = useEventFeed({
+    enabled: connected && contractIds.length > 0,
+    startLedger: Number(import.meta.env.VITE_EVENT_START_LEDGER ?? 0) || 0,
+    contractIds,
+  })
+
+  const mergedEvents = useMemo(
+    () => (chainEvents.length > 0 ? chainEvents : events),
+    [chainEvents, events],
   )
 
   const walletLabel = useMemo(
@@ -80,7 +99,7 @@ function App() {
           </TerminalPanel>
 
           <TerminalPanel title="event_feed" right={`${events.length}_events`}>
-            <EventFeed events={events} />
+            <EventFeed events={mergedEvents} />
           </TerminalPanel>
         </aside>
       </main>

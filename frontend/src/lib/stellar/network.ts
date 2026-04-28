@@ -1,7 +1,5 @@
-import { Networks } from '@stellar/stellar-sdk'
-
 export const STELLAR = {
-  networkPassphrase: Networks.TESTNET,
+  networkPassphrase: 'Test SDF Network ; September 2015',
   sorobanRpcUrl: import.meta.env.VITE_SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org',
 } as const
 
