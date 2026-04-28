@@ -1,0 +1,29 @@
+## Node
+node_modules/
+dist/
+build/
+.vite/
+.turbo/
+
+## Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## Env
+.env
+.env.*
+
+## OS / Editor
+.DS_Store
+Thumbs.db
+
+## Rust / Cargo
+target/
+**/*.rs.bk
+
+## Soroban artifacts
+*.wasm
+*.contract
+*.stellar
