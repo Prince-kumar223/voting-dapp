@@ -1,5 +1,9 @@
 # Voting dApp (Soroban + React)
 
+> CI: add your repo URL to enable the badge below.
+
+![CI](https://github.com/REPLACE_ME/REPLACE_ME/actions/workflows/ci.yml/badge.svg)
+
 Terminal-style decentralized voting app on Stellar **Soroban** (Testnet), with **reward tokens** via inter-contract calls and a **real-time event feed**.
 
 ## Monorepo structure
@@ -28,9 +32,17 @@ cd contracts
 cargo test
 ```
 
+## Frontend environment variables
+- `VITE_SOROBAN_RPC_URL` (default: `https://soroban-testnet.stellar.org`)
+- `VITE_VOTING_CONTRACT_ID` (after deploy)
+- `VITE_TOKEN_CONTRACT_ID` (after deploy)
+- `VITE_EVENT_START_LEDGER` (optional; default `0`)
+
 ## Deployment
 After first deploy, we will update this README with:
 - Live demo link
-- CI badge
+- CI badge (replace placeholder repo in badge URL)
 - Contract IDs + tx hashes (Voting + Token)
 - Mobile screenshots
+
+See [scripts/deploy.testnet.md](scripts/deploy.testnet.md).
