@@ -24,13 +24,13 @@ pub enum DataKey {
     HasVoted(u32, Address),
 }
 
-mod reward_token {
+mod mint_token {
     use soroban_sdk::{contractclient, Address, Env};
 
     // Minimal interface used by the voting contract.
     // The token contract we deploy will implement SEP-41 + this admin mint.
-    #[contractclient(name = "RewardTokenClient")]
-    pub trait RewardToken {
+    #[contractclient(name = "MintTokenClient")]
+    pub trait MintToken {
         fn mint(env: Env, to: Address, amount: i128);
     }
 }
@@ -176,7 +176,7 @@ impl VotingContract {
 
         // Minting is not part of SEP-41; our deployed token contract will expose `mint`.
         // This call is atomic with the vote and prevents double-minting.
-        let token = reward_token::RewardTokenClient::new(&e, &token_id);
+        let token = mint_token::MintTokenClient::new(&e, &token_id);
         token.mint(&voter, &reward_amount);
 
         e.events().publish(
@@ -194,27 +194,8 @@ mod test {
 
     use super::*;
     use soroban_sdk::testutils::Address as _;
-    use soroban_sdk::{contract, contractimpl, Env};
-
-    #[contract]
-    struct MockRewardToken;
-
-    #[contractimpl]
-    impl MockRewardToken {
-        pub fn mint(e: Env, to: Address, amount: i128) {
-            let key = (symbol_short!("bal"), to);
-            let cur: i128 = e.storage().instance().get(&key).unwrap_or(0);
-            e.storage().instance().set(&key, &(cur + amount));
-
-            e.events()
-                .publish((Symbol::new(&e, "tokens_rewarded"),), (key.1, amount));
-        }
-
-        pub fn balance(e: Env, id: Address) -> i128 {
-            let key = (symbol_short!("bal"), id);
-            e.storage().instance().get(&key).unwrap_or(0)
-        }
-    }
+    use soroban_sdk::Env;
+    use reward_token::{RewardToken, RewardTokenClient};
 
     #[test]
     fn vote_happy_path_mints_and_marks_voted() {
@@ -222,15 +203,24 @@ mod test {
         let admin = Address::generate(&e);
         let voter = Address::generate(&e);
 
-        let token_addr = e.register(MockRewardToken, ());
+        let token_addr = e.register(RewardToken, ());
+        let token = RewardTokenClient::new(&e, &token_addr);
 
         // Deploy voting contract.
-        let voting_id = e.register(VotingContract, ());
-        let voting = VotingContractClient::new(&e, &voting_id);
+        let voting_addr = e.register(VotingContract, ());
+        let voting = VotingContractClient::new(&e, &voting_addr);
 
         let reward: i128 = 10;
         voting.init(&admin, &token_addr, &reward);
         e.mock_all_auths();
+
+        token.init(
+            &admin,
+            &String::from_str(&e, "RewardToken"),
+            &String::from_str(&e, "RWD"),
+            &7u32,
+        );
+        token.set_admin(&admin, &voting_addr);
 
         voting.set_proposal(&admin, &1, &String::from_str(&e, "Proposal_1"));
         voting.set_proposal(&admin, &2, &String::from_str(&e, "Proposal_2"));
@@ -242,7 +232,6 @@ mod test {
 
         assert!(voting.has_voted(&1, &voter));
 
-        let token = MockRewardTokenClient::new(&e, &token_addr);
         assert_eq!(token.balance(&voter), reward);
 
         let p = voting.get_proposal(&1);
@@ -256,13 +245,22 @@ mod test {
         let admin = Address::generate(&e);
         let voter = Address::generate(&e);
 
-        let token_addr = e.register(MockRewardToken, ());
-        let voting_id = e.register(VotingContract, ());
-        let voting = VotingContractClient::new(&e, &voting_id);
+        let token_addr = e.register(RewardToken, ());
+        let token = RewardTokenClient::new(&e, &token_addr);
+        let voting_addr = e.register(VotingContract, ());
+        let voting = VotingContractClient::new(&e, &voting_addr);
 
         e.mock_all_auths();
 
         voting.init(&admin, &token_addr, &5i128);
+        token.init(
+            &admin,
+            &String::from_str(&e, "RewardToken"),
+            &String::from_str(&e, "RWD"),
+            &7u32,
+        );
+        token.set_admin(&admin, &voting_addr);
+
         voting.set_proposal(&admin, &7, &String::from_str(&e, "P7"));
 
         voting.vote(&7, &voter);

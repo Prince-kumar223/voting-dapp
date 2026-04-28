@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "voting",
+  "token",
 ]
 
 [profile.release]
