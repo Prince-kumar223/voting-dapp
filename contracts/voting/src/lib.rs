@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, panic_with_error, symbol_short, Address,
-    Env, String, Symbol,
+    Env, String, Symbol, Vec,
 };
 
 #[contracttype]
@@ -19,6 +19,7 @@ pub enum DataKey {
     Admin,
     TokenContractId,
     RewardAmount,
+    ProposalIds,
     Proposal(u32),
     HasVoted(u32, Address),
 }
@@ -94,8 +95,19 @@ impl VotingContract {
             panic_with_error!(&e, VotingError::NotAuthorized);
         }
 
+        let existed = e.storage().instance().has(&DataKey::Proposal(id));
         let p = Proposal { id, title, votes: 0 };
         e.storage().instance().set(&DataKey::Proposal(id), &p);
+
+        if !existed {
+            let mut ids: Vec<u32> = e
+                .storage()
+                .instance()
+                .get(&DataKey::ProposalIds)
+                .unwrap_or(Vec::new(&e));
+            ids.push_back(id);
+            e.storage().instance().set(&DataKey::ProposalIds, &ids);
+        }
     }
 
     pub fn get_proposal(e: Env, id: u32) -> Proposal {
@@ -104,6 +116,29 @@ impl VotingContract {
             .instance()
             .get(&DataKey::Proposal(id))
             .unwrap_or_else(|| panic_with_error!(&e, VotingError::ProposalNotFound))
+    }
+
+    pub fn get_proposal_ids(e: Env) -> Vec<u32> {
+        require_init(&e);
+        e.storage()
+            .instance()
+            .get(&DataKey::ProposalIds)
+            .unwrap_or(Vec::new(&e))
+    }
+
+    pub fn list_proposals(e: Env, start: u32, limit: u32) -> Vec<Proposal> {
+        require_init(&e);
+        let ids = Self::get_proposal_ids(e.clone());
+        let mut out: Vec<Proposal> = Vec::new(&e);
+
+        let ids_len: u32 = ids.len();
+        let mut i = start;
+        while i < ids_len && out.len() < limit {
+            let id = ids.get(i).unwrap();
+            out.push_back(Self::get_proposal(e.clone(), id));
+            i += 1;
+        }
+        out
     }
 
     pub fn has_voted(e: Env, proposal_id: u32, voter: Address) -> bool {
@@ -198,6 +233,10 @@ mod test {
         e.mock_all_auths();
 
         voting.set_proposal(&admin, &1, &String::from_str(&e, "Proposal_1"));
+        voting.set_proposal(&admin, &2, &String::from_str(&e, "Proposal_2"));
+
+        let ids = voting.get_proposal_ids();
+        assert_eq!(ids.len(), 2);
 
         voting.vote(&1, &voter);
 
