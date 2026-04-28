@@ -6,9 +6,11 @@ import type { ChainEvent } from './features/events/types'
 import { TokenBalance } from './features/token/TokenBalance'
 import { ProposalList } from './features/voting/ProposalList'
 import type { Proposal } from './features/voting/types'
+import { useWallet } from './lib/wallet/WalletProvider'
 
 function App() {
-  const [connected, setConnected] = useState(false)
+  const { state: wallet, connect, disconnect } = useWallet()
+  const connected = wallet.status === 'connected'
   const [proposals, setProposals] = useState<Proposal[]>(
     () =>
       [
@@ -40,8 +42,12 @@ function App() {
   )
 
   const walletLabel = useMemo(
-    () => (connected ? 'Wallet_connected' : 'Connect_wallet'),
-    [connected],
+    () => {
+      if (wallet.status === 'connecting') return 'Connecting…'
+      if (wallet.status === 'connected') return 'Wallet_connected'
+      return 'Connect_wallet'
+    },
+    [wallet.status],
   )
 
   return (
@@ -52,7 +58,7 @@ function App() {
           <button
             type="button"
             className="terminal-button"
-            onClick={() => setConnected((v) => !v)}
+            onClick={() => (connected ? disconnect() : void connect())}
           >
             {walletLabel}
           </button>
@@ -78,6 +84,14 @@ function App() {
           </TerminalPanel>
         </aside>
       </main>
+
+      {wallet.status === 'error' ? (
+        <div className="mx-auto max-w-6xl px-4 pb-6">
+          <div className="terminal-panel px-4 py-3 text-sm text-terminalWhite/80">
+            error :: {wallet.message}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
