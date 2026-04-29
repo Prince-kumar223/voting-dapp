@@ -93,6 +93,7 @@ export async function invokeContract({
     try {
       signedXdr = await freighterSignXdr({
         xdr: assembled.toXDR(),
+        publicKey,
         networkPassphrase: STELLAR.networkPassphrase,
       })
     } catch (e) {

@@ -36,12 +36,30 @@ export async function requestFreighterAccess(): Promise<FreighterStatus> {
 
 export async function freighterSignXdr({
   xdr,
+  publicKey,
   networkPassphrase,
 }: {
   xdr: string
+  publicKey: string
   networkPassphrase: string
 }): Promise<string> {
-  const res = await signTransaction(xdr, { networkPassphrase })
-  return res.signedTxXdr
-}
+  const res = (await signTransaction(xdr, {
+    address: publicKey,
+    networkPassphrase,
+  })) as unknown
 
+  if (typeof res === 'string' && res.length > 0) return res
+
+  if (res && typeof res === 'object') {
+    const signed = (res as { signedTxXdr?: string; signedTransaction?: string }).signedTxXdr
+      ?? (res as { signedTxXdr?: string; signedTransaction?: string }).signedTransaction
+
+    if (signed && signed.length > 0) return signed
+
+    const error = (res as { error?: { message?: string } | string }).error
+    if (typeof error === 'string') throw new Error(error)
+    if (error?.message) throw new Error(error.message)
+  }
+
+  throw new Error('Freighter did not return a signed transaction')
+}
