@@ -51,7 +51,17 @@ After first deploy, update this README with:
 
 See [scripts/deploy.testnet.md](scripts/deploy.testnet.md).
 
-## Contract addresses (fill after deploy)
-- **Voting contract**: `<VOTING_CONTRACT_ID>`
-- **Token contract**: `<TOKEN_CONTRACT_ID>`
-- **Deploy tx hash**: `<TX_HASH>`
+## Contract addresses(after deployed)
+- **Voting contract**:CDFQGFT67QKECWMPM7IXVN47YFIBIX6DCZRQ7LO57C2GTCPJVMJFTMP6
+- **Token contract**: CD322LQ4MUWPUTMGPSL2IGRSHDRIZKWTFT4PAZZTUD2FK4ILCYRQTQCF
+- **Deploy tx hash**:170b9bdb3ec64d2de980c0b59eb25f3ac0aae1f23e8b0290223e97353a3ffaaa
+
+## SCREENSHOT OF MOBILE RESPONSIVE 
+![alt text](Mobile_response_view.jpeg)
+## LIVE DEMO LINK OF VERCEL:-https://voting-dapp-teal-seven.vercel.app/
+
+## SCREENSHOT OF CONTRACT ID - ![alt text](<Screenshot 2026-04-25 003640.png>)
+
+## WORKING APP SCREENSHOT - ![alt text](<Screenshot 2026-04-30 020547.png>) ![alt text](<Screenshot 2026-04-30 020607.png>)
+
+
