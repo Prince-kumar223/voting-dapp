@@ -42,6 +42,12 @@ soroban contract invoke --id "$TOKEN_ID" --source deployer --network testnet -- 
 ```
 
 ```sh
+soroban contract invoke --id "$VOTING_ID" --source deployer --network testnet -- set_proposal --caller "$(soroban keys address deployer)" --id 1 --title Enable_quadratic_voting
+soroban contract invoke --id "$VOTING_ID" --source deployer --network testnet -- set_proposal --caller "$(soroban keys address deployer)" --id 2 --title Fund_open_source_grants
+soroban contract invoke --id "$VOTING_ID" --source deployer --network testnet -- set_proposal --caller "$(soroban keys address deployer)" --id 3 --title Reduce_protocol_fees
+```
+
+```sh
 cd ..
 cat > frontend/.env <<EOF
 VITE_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org

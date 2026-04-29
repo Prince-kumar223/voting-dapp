@@ -10,6 +10,7 @@ import { TokenBalance } from './features/token/TokenBalance'
 import { ProposalList } from './features/voting/ProposalList'
 import type { Proposal } from './features/voting/types'
 import { useTokenBalance } from './hooks/useTokenBalance'
+import { invokeContract } from './lib/stellar/tx'
 import { useWallet } from './lib/wallet/WalletProvider'
 
 function App() {
@@ -27,12 +28,28 @@ function App() {
   )
 
   const [events, setEvents] = useState<ChainEvent[]>([])
+  const votingContractId = import.meta.env.VITE_VOTING_CONTRACT_ID as string | undefined
+  const tokenContractId = import.meta.env.VITE_TOKEN_CONTRACT_ID as string | undefined
 
   const onVote = useCallback(
-    (id: number) => {
-      if (!connected) return
+    async (id: number) => {
+      if (!connected || wallet.status !== 'connected' || !votingContractId) return
 
       try {
+        const result = await invokeContract({
+          publicKey: wallet.publicKey,
+          contractId: votingContractId,
+          method: 'vote',
+          args: [
+            { kind: 'u32', value: id },
+            { kind: 'address', value: wallet.publicKey },
+          ],
+        })
+
+        if (!result.ok) {
+          throw new Error(result.message)
+        }
+
         setProposals((prev) =>
           prev.map((p) => (p.id === id ? { ...p, votes: p.votes + 1 } : p)),
         )
@@ -50,11 +67,9 @@ function App() {
         showToast('Vote failed. Try again.', 'error')
       }
     },
-    [connected, showToast],
+    [connected, showToast, votingContractId, wallet],
   )
 
-  const votingContractId = import.meta.env.VITE_VOTING_CONTRACT_ID as string | undefined
-  const tokenContractId = import.meta.env.VITE_TOKEN_CONTRACT_ID as string | undefined
   const contractIds = useMemo(
     () => [votingContractId, tokenContractId].filter(Boolean) as string[],
     [tokenContractId, votingContractId],
