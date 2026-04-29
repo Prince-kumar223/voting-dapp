@@ -31,7 +31,7 @@ const fallbackProposals = [
   { id: 3, title: 'Reduce_protocol_fees', votes: 0 },
 ] satisfies Proposal[]
 
-const appBuild = 'build_fb9d63b_signing_guard_v2'
+const appBuild = 'build_freighter_boolean_fix_v3'
 
 function App() {
   const { state: wallet, connect, disconnect } = useWallet()

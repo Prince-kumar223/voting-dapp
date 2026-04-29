@@ -61,6 +61,10 @@ export async function invokeContract({
   args: ContractArg[]
 }): Promise<InvokeResult> {
   try {
+    if (!publicKey || !publicKey.startsWith('G')) {
+      return { ok: false, stage: 'sign', message: 'Wallet public key is missing' }
+    }
+
     const sdk = await import('@stellar/stellar-sdk')
     const server = (await sorobanServer()) as InstanceType<typeof sdk.rpc.Server>
     const account = await server.getAccount(publicKey)
