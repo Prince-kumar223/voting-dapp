@@ -63,6 +63,13 @@ jobs:
     needs: [contracts, frontend]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VITE_SOROBAN_RPC_URL: ${{ secrets.VITE_SOROBAN_RPC_URL }}
+      VITE_VOTING_CONTRACT_ID: ${{ secrets.VITE_VOTING_CONTRACT_ID }}
+      VITE_TOKEN_CONTRACT_ID: ${{ secrets.VITE_TOKEN_CONTRACT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -73,16 +80,23 @@ jobs:
       - name: Install deps
         working-directory: frontend
         run: npm ci
+      - name: Validate deploy secrets
+        run: |
+          test -n "$VERCEL_TOKEN"
+          test -n "$VERCEL_ORG_ID"
+          test -n "$VERCEL_PROJECT_ID"
+          test -n "$VITE_SOROBAN_RPC_URL"
+          test -n "$VITE_VOTING_CONTRACT_ID"
+          test -n "$VITE_TOKEN_CONTRACT_ID"
       - name: Build
         working-directory: frontend
         run: npm run build
-        env:
-          VITE_SOROBAN_RPC_URL: ${{ secrets.VITE_SOROBAN_RPC_URL }}
-          VITE_VOTING_CONTRACT_ID: ${{ secrets.VITE_VOTING_CONTRACT_ID }}
-          VITE_TOKEN_CONTRACT_ID: ${{ secrets.VITE_TOKEN_CONTRACT_ID }}
+      - name: Pull Vercel project settings
+        working-directory: frontend
+        run: npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build Vercel output
+        working-directory: frontend
+        run: npx vercel@latest build --prod --token="$VERCEL_TOKEN"
       - name: Deploy to Vercel
         working-directory: frontend
-        run: npx vercel@latest deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
