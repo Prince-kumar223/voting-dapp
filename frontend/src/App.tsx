@@ -28,6 +28,7 @@ function formatVoteError(message: string): string {
 const fallbackProposals = [
   { id: 1, title: 'Enable_quadratic_voting', votes: 0 },
   { id: 2, title: 'Fund_open_source_grants', votes: 0 },
+  { id: 3, title: 'Reduce_protocol_fees', votes: 0 },
 ] satisfies Proposal[]
 
 function App() {
