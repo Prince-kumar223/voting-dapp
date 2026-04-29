@@ -1,8 +1,6 @@
 # Voting dApp (Soroban + React)
 
-> CI: add your repo URL to enable the badge below.
-
-![CI](https://github.com/REPLACE_ME/REPLACE_ME/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/Prince-kumar223/voting-dapp/actions/workflows/ci.yml/badge.svg)
 
 Terminal-style decentralized voting app on Stellar **Soroban** (Testnet), with **reward tokens** via inter-contract calls and a **real-time event feed**.
 
@@ -44,9 +42,10 @@ cargo test
 - `VITE_EVENT_START_LEDGER` (optional; default `0`)
 
 ## Deployment
-After first deploy, we will update this README with:
+CI runs contract formatting, contract tests, WASM builds, and the frontend production build on every push and pull request. Production deploy runs from `main` when the required Vercel and contract secrets are configured.
+
+After first deploy, update this README with:
 - Live demo link
-- CI badge (replace placeholder repo in badge URL)
 - Contract IDs + tx hashes (Voting + Token)
 - Mobile screenshots
 
