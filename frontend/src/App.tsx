@@ -1,17 +1,22 @@
 import { useCallback, useMemo, useState } from 'react'
 import { TerminalPanel } from './components/TerminalPanel'
+import { ToastContainer, useToast } from './components/Toast'
 import { TypingHeading } from './components/TypingHeading'
+import MobileMenu from './components/MobileMenu'
 import { EventFeed } from './features/events/EventFeed'
 import type { ChainEvent } from './features/events/types'
 import { useEventFeed } from './features/events/useEventFeed'
 import { TokenBalance } from './features/token/TokenBalance'
 import { ProposalList } from './features/voting/ProposalList'
 import type { Proposal } from './features/voting/types'
+import { useTokenBalance } from './hooks/useTokenBalance'
 import { useWallet } from './lib/wallet/WalletProvider'
 
 function App() {
   const { state: wallet, connect, disconnect } = useWallet()
+  const { showToast, toasts } = useToast()
   const connected = wallet.status === 'connected'
+  const { balance } = useTokenBalance(wallet.status === 'connected' ? wallet.publicKey : undefined)
   const [proposals, setProposals] = useState<Proposal[]>(
     () =>
       [
@@ -26,20 +31,26 @@ function App() {
   const onVote = useCallback(
     (id: number) => {
       if (!connected) return
-      setProposals((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, votes: p.votes + 1 } : p)),
-      )
-      setEvents((prev) => [
-        {
-          id: `${Date.now()}_${id}`,
-          ts: Date.now(),
-          topic: 'vote_cast',
-          details: `proposal_${id}`,
-        },
-        ...prev,
-      ].slice(0, 50))
+
+      try {
+        setProposals((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, votes: p.votes + 1 } : p)),
+        )
+        showToast('Vote cast successfully!', 'success')
+        setEvents((prev) => [
+          {
+            id: `${Date.now()}_${id}`,
+            ts: Date.now(),
+            topic: 'vote_cast',
+            details: `proposal_${id}`,
+          },
+          ...prev,
+        ].slice(0, 50))
+      } catch {
+        showToast('Vote failed. Try again.', 'error')
+      }
     },
-    [connected],
+    [connected, showToast],
   )
 
   const votingContractId = import.meta.env.VITE_VOTING_CONTRACT_ID as string | undefined
@@ -74,13 +85,20 @@ function App() {
       <header className="border-b border-terminalGreen/20">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <TypingHeading text="Voting_dAPP" className="text-base font-semibold" />
-          <button
-            type="button"
-            className="terminal-button"
-            onClick={() => (connected ? disconnect() : void connect())}
-          >
-            {walletLabel}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="terminal-button"
+              onClick={() => (connected ? disconnect() : void connect())}
+            >
+              {walletLabel}
+            </button>
+            <MobileMenu
+              walletAddress={wallet.status === 'connected' ? wallet.publicKey : undefined}
+              balance={balance}
+              isConnected={connected}
+            />
+          </div>
         </div>
       </header>
 
@@ -95,7 +113,7 @@ function App() {
 
         <aside className="grid gap-4 md:col-span-4">
           <TerminalPanel title="token_balance">
-            <TokenBalance amount="0" />
+            <TokenBalance amount={balance} />
           </TerminalPanel>
 
           <TerminalPanel title="event_feed" right={`${events.length}_events`}>
@@ -111,6 +129,8 @@ function App() {
           </div>
         </div>
       ) : null}
+
+      <ToastContainer toasts={toasts} />
     </div>
   )
 }

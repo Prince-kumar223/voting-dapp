@@ -1,45 +1,58 @@
-# Deploy to Stellar Testnet (Soroban)
+# Testnet Deployment Commands
 
-This repo assumes you deploy **Token** first, then **Voting**, then set the token admin to the voting contract so voting can mint rewards.
+```sh
+cargo install --locked stellar-cli --features opt
+```
 
-## Prereqs
-- `soroban` CLI installed
-- funded Testnet account
+```sh
+soroban network add testnet --rpc-url https://soroban-testnet.stellar.org --network-passphrase "Test SDF Network ; September 2015"
+```
 
-## Suggested environment variables
-- `SOROBAN_RPC_URL=https://soroban-testnet.stellar.org`
-- `SOROBAN_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"`
-- `SOROBAN_ACCOUNT=<your_testnet_address>`
+```sh
+soroban keys generate deployer --network testnet
+curl "https://friendbot.stellar.org?addr=$(soroban keys address deployer)"
+```
 
-## Build contracts
-```bash
+```sh
 cd contracts
 cargo build -p token --release --target wasm32-unknown-unknown
 cargo build -p voting --release --target wasm32-unknown-unknown
 ```
 
-## Deploy Token contract
-```bash
-TOKEN_WASM=target/wasm32-unknown-unknown/release/token.wasm
-
-# Example (flags vary by soroban-cli version):
-# soroban contract deploy --wasm $TOKEN_WASM --source $SOROBAN_ACCOUNT --rpc-url $SOROBAN_RPC_URL --network-passphrase "$SOROBAN_NETWORK_PASSPHRASE"
+```sh
+TOKEN_ID=$(soroban contract deploy --wasm target/wasm32-unknown-unknown/release/token.wasm --source deployer --network testnet)
+echo "$TOKEN_ID"
 ```
 
-## Initialize Token
-Call `init(admin,name,symbol,decimals)` and keep `admin` as your account for setup.
-
-## Deploy Voting contract
-```bash
-VOTING_WASM=target/wasm32-unknown-unknown/release/voting.wasm
+```sh
+VOTING_ID=$(soroban contract deploy --wasm target/wasm32-unknown-unknown/release/voting.wasm --source deployer --network testnet)
+echo "$VOTING_ID"
 ```
 
-## Initialize Voting
-Call `init(admin, token_contract_id, reward_amount)`.
+```sh
+soroban contract invoke --id "$TOKEN_ID" --source deployer --network testnet -- init --admin "$(soroban keys address deployer)" --name RewardToken --symbol RWD --decimals 7
+```
 
-## Hand over mint authority to Voting
-Call `token.set_admin(admin, voting_contract_address)` so `voting.vote(...)` can mint rewards.
+```sh
+soroban contract invoke --id "$VOTING_ID" --source deployer --network testnet -- init --admin "$(soroban keys address deployer)" --token_contract_id "$TOKEN_ID" --reward_amount 100000000
+```
 
-## Seed proposals
-Call `voting.set_proposal(admin, id, title)` for each proposal.
+```sh
+soroban contract invoke --id "$TOKEN_ID" --source deployer --network testnet -- set_admin --caller "$(soroban keys address deployer)" --new_admin "$VOTING_ID"
+```
 
+```sh
+cd ..
+cat > frontend/.env <<EOF
+VITE_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
+VITE_VOTING_CONTRACT_ID=$VOTING_ID
+VITE_TOKEN_CONTRACT_ID=$TOKEN_ID
+EOF
+```
+
+```sh
+cd frontend
+npm ci
+npm run build
+npx vercel --prod
+```
