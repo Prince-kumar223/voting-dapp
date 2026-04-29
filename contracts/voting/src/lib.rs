@@ -96,7 +96,11 @@ impl VotingContract {
         }
 
         let existed = e.storage().instance().has(&DataKey::Proposal(id));
-        let p = Proposal { id, title, votes: 0 };
+        let p = Proposal {
+            id,
+            title,
+            votes: 0,
+        };
         e.storage().instance().set(&DataKey::Proposal(id), &p);
 
         if !existed {
@@ -166,7 +170,9 @@ impl VotingContract {
             .unwrap_or_else(|| panic_with_error!(&e, VotingError::ProposalNotFound));
 
         p.votes = p.votes.saturating_add(1);
-        e.storage().instance().set(&DataKey::Proposal(proposal_id), &p);
+        e.storage()
+            .instance()
+            .set(&DataKey::Proposal(proposal_id), &p);
         e.storage()
             .instance()
             .set(&DataKey::HasVoted(proposal_id, voter.clone()), &true);
@@ -179,12 +185,12 @@ impl VotingContract {
         let token = mint_token::MintTokenClient::new(&e, &token_id);
         token.mint(&voter, &reward_amount);
 
-        e.events().publish(
-            (symbol_short!("vote_cast"),),
-            (proposal_id, voter.clone()),
-        );
         e.events()
-            .publish((Symbol::new(&e, "tokens_rewarded"),), (voter, reward_amount));
+            .publish((symbol_short!("vote_cast"),), (proposal_id, voter.clone()));
+        e.events().publish(
+            (Symbol::new(&e, "tokens_rewarded"),),
+            (voter, reward_amount),
+        );
     }
 }
 
@@ -193,9 +199,9 @@ mod test {
     extern crate std;
 
     use super::*;
+    use reward_token::{RewardToken, RewardTokenClient};
     use soroban_sdk::testutils::Address as _;
     use soroban_sdk::Env;
-    use reward_token::{RewardToken, RewardTokenClient};
 
     #[test]
     fn vote_happy_path_mints_and_marks_voted() {
@@ -267,4 +273,3 @@ mod test {
         voting.vote(&7, &voter);
     }
 }
-

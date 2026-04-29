@@ -131,10 +131,8 @@ impl RewardToken {
         e.storage()
             .instance()
             .set(&DataKey::Allowance(from.clone(), spender.clone()), &amount);
-        e.events().publish(
-            (Symbol::new(&e, "approve"), from, spender),
-            (amount,),
-        );
+        e.events()
+            .publish((Symbol::new(&e, "approve"), from, spender), (amount,));
     }
 
     pub fn transfer(e: Env, from: Address, to: Address, amount: i128) {
@@ -247,4 +245,3 @@ mod test {
         assert_eq!(token.balance(&user), 10);
     }
 }
-
