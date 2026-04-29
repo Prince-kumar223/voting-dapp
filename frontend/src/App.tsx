@@ -9,27 +9,50 @@ import { useEventFeed } from './features/events/useEventFeed'
 import { TokenBalance } from './features/token/TokenBalance'
 import { ProposalList } from './features/voting/ProposalList'
 import type { Proposal } from './features/voting/types'
+import { useProposals } from './features/voting/useProposals'
 import { useTokenBalance } from './hooks/useTokenBalance'
 import { invokeContract } from './lib/stellar/tx'
 import { useWallet } from './lib/wallet/WalletProvider'
+
+function cleanEnvValue(value: string | undefined): string | undefined {
+  return value?.trim().replace(/^["']|["']$/g, '')
+}
+
+function formatVoteError(message: string): string {
+  if (message.includes('#2')) return 'this wallet already voted for that proposal'
+  if (message.includes('#3')) return 'proposal was not found on-chain'
+  if (message.includes('not found')) return 'wallet account was not found on testnet'
+  return message
+}
+
+const fallbackProposals = [
+  { id: 1, title: 'Enable_quadratic_voting', votes: 0 },
+  { id: 2, title: 'Fund_open_source_grants', votes: 0 },
+] satisfies Proposal[]
 
 function App() {
   const { state: wallet, connect, disconnect } = useWallet()
   const { showToast, toasts } = useToast()
   const connected = wallet.status === 'connected'
   const { balance } = useTokenBalance(wallet.status === 'connected' ? wallet.publicKey : undefined)
-  const [proposals, setProposals] = useState<Proposal[]>(
-    () =>
-      [
-        { id: 1, title: 'Enable_quadratic_voting', votes: 0 },
-        { id: 2, title: 'Fund_open_source_grants', votes: 0 },
-        { id: 3, title: 'Reduce_protocol_fees', votes: 0 },
-      ] satisfies Proposal[],
-  )
+  const [optimisticVotes, setOptimisticVotes] = useState<Record<number, number>>({})
 
   const [events, setEvents] = useState<ChainEvent[]>([])
-  const votingContractId = import.meta.env.VITE_VOTING_CONTRACT_ID as string | undefined
-  const tokenContractId = import.meta.env.VITE_TOKEN_CONTRACT_ID as string | undefined
+  const votingContractId = cleanEnvValue(import.meta.env.VITE_VOTING_CONTRACT_ID)
+  const tokenContractId = cleanEnvValue(import.meta.env.VITE_TOKEN_CONTRACT_ID)
+  const chainProposals = useProposals({
+    contractId: votingContractId,
+    sourceAccount: wallet.status === 'connected' ? wallet.publicKey : undefined,
+  })
+
+  const proposals = useMemo(
+    () =>
+      (chainProposals ?? fallbackProposals).map((p) => ({
+        ...p,
+        votes: p.votes + (optimisticVotes[p.id] ?? 0),
+      })),
+    [chainProposals, optimisticVotes],
+  )
 
   const onVote = useCallback(
     async (id: number) => {
@@ -50,9 +73,7 @@ function App() {
           throw new Error(result.message)
         }
 
-        setProposals((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, votes: p.votes + 1 } : p)),
-        )
+        setOptimisticVotes((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
         showToast('Vote cast successfully!', 'success')
         setEvents((prev) => [
           {
@@ -63,8 +84,9 @@ function App() {
           },
           ...prev,
         ].slice(0, 50))
-      } catch {
-        showToast('Vote failed. Try again.', 'error')
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Unknown_error'
+        showToast(`Vote failed: ${formatVoteError(message)}`, 'error')
       }
     },
     [connected, showToast, votingContractId, wallet],
