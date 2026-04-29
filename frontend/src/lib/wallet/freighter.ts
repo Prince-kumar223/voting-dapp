@@ -43,6 +43,10 @@ export async function freighterSignXdr({
   publicKey: string
   networkPassphrase: string
 }): Promise<string> {
+  if (!xdr || typeof xdr !== 'string') {
+    throw new Error('Prepared transaction XDR was empty')
+  }
+
   const res = (await signTransaction(xdr, {
     address: publicKey,
     networkPassphrase,

@@ -101,7 +101,18 @@ export async function invokeContract({
       return { ok: false, stage: 'sign', message: msg }
     }
 
-    const signed = sdk.TransactionBuilder.fromXDR(signedXdr, STELLAR.networkPassphrase)
+    if (!signedXdr || typeof signedXdr !== 'string') {
+      return { ok: false, stage: 'sign', message: 'Freighter returned an empty signed transaction' }
+    }
+
+    let signed: ReturnType<typeof sdk.TransactionBuilder.fromXDR>
+    try {
+      signed = sdk.TransactionBuilder.fromXDR(signedXdr, STELLAR.networkPassphrase)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Invalid_signed_transaction_xdr'
+      return { ok: false, stage: 'sign', message: `Invalid signed transaction from Freighter: ${msg}` }
+    }
+
     const send = await server.sendTransaction(signed)
     if (send.status !== 'PENDING') {
       return { ok: false, stage: 'send', message: JSON.stringify(send) }
