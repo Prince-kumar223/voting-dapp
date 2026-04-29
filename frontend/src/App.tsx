@@ -31,6 +31,8 @@ const fallbackProposals = [
   { id: 3, title: 'Reduce_protocol_fees', votes: 0 },
 ] satisfies Proposal[]
 
+const appBuild = 'build_fb9d63b_signing_guard_v2'
+
 function App() {
   const { state: wallet, connect, disconnect } = useWallet()
   const { showToast, toasts } = useToast()
@@ -167,6 +169,10 @@ function App() {
           </div>
         </div>
       ) : null}
+
+      <div className="fixed bottom-2 left-2 text-[10px] text-terminalWhite/30">
+        {appBuild}
+      </div>
 
       <ToastContainer toasts={toasts} />
     </div>
